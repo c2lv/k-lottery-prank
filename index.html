@@ -88,8 +88,8 @@
         <!-- 사용자 정의 모달 대화상자 -->
         <div id="customModal" class="modal">
             <div class="modal-content">
-                <p id="modalMessage">인식된 QR 코드가 URL입니다. 해당 페이지로 이동하시겠습니까?</p>
-                <button id="confirmBtn" class="modal-button">이동</button>
+                <p id="modalMessage"></p>
+                <button id="confirmBtn" class="modal-button">링크 열기</button>
                 <button id="cancelBtn" class="modal-button">취소</button>
             </div>
         </div>
@@ -112,9 +112,9 @@
         var modal = document.getElementById("customModal");
         var confirmBtn = document.getElementById("confirmBtn");
         var cancelBtn = document.getElementById("cancelBtn");
-        // 이동 버튼 클릭 시
+        // 링크 열기 버튼 클릭 시
         confirmBtn.addEventListener("click", function() {
-            var url = code.data; // QR 코드 데이터 가져오기
+            var url = document.getElementById("outputData").innerHTML; // QR 코드 데이터 가져오기
             window.location.href = url; // URL 페이지로 이동
         });
 
@@ -183,6 +183,7 @@
                     // code.data가 URL 형식인지 확인
                     // URL 형식이면 confirm을 통해 이동 여부 확인
                     if (isValidURL(code.data)) {
+                        modalMessage.innerHTML = code.data;
                         modal.style.display = "block";
                     }
                     // return을 써서 함수를 빠져나가면 QR코드 프로그램이 종료된다.
