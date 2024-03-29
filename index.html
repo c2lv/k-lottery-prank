@@ -122,6 +122,23 @@
                 });
                 // QR코드 인식에 성공한 경우
                 if (code) {
+                    // code.data가 URL 형식인지 확인
+                    // URL 형식이면 confirm을 통해 이동 여부 확인
+                    if (isValidURL(code.data)) {
+                        // 인식한 QR코드의 영역을 감싸는 사용자에게 보여지는 테두리 생성
+                        drawLine(code.location.topLeftCorner, code.location.topRightCorner, "#FF0000");
+                        drawLine(code.location.topRightCorner, code.location.bottomRightCorner, "#FF0000");
+                        drawLine(code.location.bottomRightCorner, code.location.bottomLeftCorner, "#FF0000");
+                        drawLine(code.location.bottomLeftCorner, code.location.topLeftCorner, "#FF0000");
+                        outputMessage.hidden = true;
+                        outputData.parentElement.hidden = false;
+                        // QR코드 메시지 출력
+                        outputData.innerHTML = code.data;
+                        var goToURL = confirm("해당 페이지로 이동하시겠습니까?");
+                        if (goToURL) {
+                            window.location.href = code.data; // URL 페이지로 이동
+                        }
+                    }
                     // 인식한 QR코드의 영역을 감싸는 사용자에게 보여지는 테두리 생성
                     drawLine(code.location.topLeftCorner, code.location.topRightCorner, "#FF0000");
                     drawLine(code.location.topRightCorner, code.location.bottomRightCorner, "#FF0000");
@@ -131,14 +148,6 @@
                     outputData.parentElement.hidden = false;
                     // QR코드 메시지 출력
                     outputData.innerHTML = code.data;
-                    // code.data가 URL 형식인지 확인
-                    // URL 형식이면 confirm을 통해 이동 여부 확인
-                    if (isValidURL(code.data)) {
-                        var goToURL = confirm("해당 페이지로 이동하시겠습니까?");
-                        if (goToURL) {
-                            window.location.href = code.data; // URL 페이지로 이동
-                        }
-                    }
                     // return을 써서 함수를 빠져나가면 QR코드 프로그램이 종료된다.
                     // return;
                 }
