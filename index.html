@@ -171,7 +171,6 @@
                 });
                 // QR코드 인식에 성공했고 모달 활성화 상태가 아니라면
                 if (code && modal.style.display != "block") {
-                    outputData.innerHTML = modal.style.display;
                     // 인식한 QR코드의 영역을 감싸는 사용자에게 보여지는 테두리 생성
                     drawLine(code.location.topLeftCorner, code.location.topRightCorner, "#FF0000");
                     drawLine(code.location.topRightCorner, code.location.bottomRightCorner, "#FF0000");
@@ -180,7 +179,7 @@
                     outputMessage.hidden = true;
                     outputData.parentElement.hidden = false;
                     // QR코드 메시지 출력
-                    // outputData.innerHTML = code.data;
+                    outputData.innerHTML = code.data;
                     // code.data가 URL 형식인지 확인
                     // URL 형식이면 confirm을 통해 이동 여부 확인
                     if (isValidURL(code.data)) {
