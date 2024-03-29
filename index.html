@@ -44,6 +44,39 @@
         canvas {
             width: 100%;
         }
+
+        /* 모달 스타일 */
+        .modal {
+            display: none; /* 모달 숨기기 */
+            position: fixed; /* 위치 고정 */
+            z-index: 1; /* 가장 위로 올리기 */
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto; /* 스크롤 가능하도록 설정 */
+            background-color: rgba(0,0,0,0.8); /* 배경색과 투명도 */
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto; /* 수직 중앙 정렬 */
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+        }
+        /* 닫기 버튼 스타일 */
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -60,6 +93,13 @@
             </div>
         </div>
         <div>&nbsp;</div>
+        <!-- 모달 -->
+        <div id="qrModal" class="modal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <p id="qrData"></p>
+            </div>
+        </div>
         <div>
             <h1>스캔</h1>
             <div id="frame">
@@ -120,7 +160,13 @@
                     outputMessage.hidden = true;
                     outputData.parentElement.hidden = false;
                     // QR코드 메시지 출력
-                    outputData.innerHTML = code.data;
+                    // outputData.innerHTML = code.data;
+                    if (isValidURL(result)) {
+                        document.getElementById('qrData').innerHTML = 'QR 코드 데이터: <a href="' + code.data + '" target="_blank">' + code.data + '</a>';
+                        document.getElementById('qrModal').style.display = "block"; // 모달 표시
+                    } else {
+                        document.getElementById('qrData').textContent = 'QR 코드 데이터: ' + code.data;
+                    }
                     // return을 써서 함수를 빠져나가면 QR코드 프로그램이 종료된다.
                     return;
                 }
@@ -133,4 +179,19 @@
             requestAnimationFrame(tick);
         }
     });
+    // 모달 닫기
+    document.getElementsByClassName('close')[0].addEventListener('click', function() {
+        document.getElementById('qrModal').style.display = "none";
+    });
+
+    // URL 유효성 검사 함수
+    function isValidURL(str) {
+        var pattern = new RegExp('^(https?:\\/\\/)?'+ // 프로토콜
+        '((([a-z\\d]([a-z\\d-]*[a-z\\d])*)\\.)+[a-z]{2,}|'+ // 도메인 이름
+        '((\\d{1,3}\\.){3}\\d{1,3}))'+ // 또는 IP
+        '(\\:\\d+)?(\\/[-a-z\\d%_.~+]*)*'+ // 포트와 경로
+        '(\\?[;&a-z\\d%_.~+=-]*)?'+ // 쿼리 문자열
+        '(\\#[-a-z\\d_]*)?$','i'); // 프래그먼트 식별자
+        return !!pattern.test(str);
+    }
 </script>
