@@ -44,6 +44,31 @@
         canvas {
             width: 100%;
         }
+
+        /* 모달 스타일 */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+        }
+        .modal-button {
+            padding: 10px 20px;
+            margin: 0 10px;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -59,12 +84,22 @@
                 </div>
             </div>
         </div>
+
+        <!-- 사용자 정의 모달 대화상자 -->
+        <div id="customModal" class="modal">
+            <div class="modal-content">
+                <p id="modalMessage">인식된 QR 코드가 URL입니다. 해당 페이지로 이동하시겠습니까?</p>
+                <button id="confirmBtn" class="modal-button">이동</button>
+                <button id="cancelBtn" class="modal-button">취소</button>
+            </div>
+        </div>
+
         <div>&nbsp;</div>
         <div>
             <h1>스캔</h1>
             <div id="frame">
                 <div id="loadingMessage">
-                    🎥 비디오 스트림에 액세스 할 수 없습니다<br />웹캠이 활성화되어 있는지 확인하십시오
+                    🎥 비디오 스트림에 액세스 할 수 없습니다<br />카메라가 활성화되어 있는지 확인하십시오
                 </div>
                 <canvas id="canvas"></canvas>
             </div>
@@ -74,6 +109,20 @@
 </html>
 <script type="text/javascript">
     document.addEventListener("DOMContentLoaded", function () {
+        var modal = document.getElementById("customModal");
+        var confirmBtn = document.getElementById("confirmBtn");
+        var cancelBtn = document.getElementById("cancelBtn");
+        // 이동 버튼 클릭 시
+        confirmBtn.addEventListener("click", function() {
+            var url = code.data; // QR 코드 데이터 가져오기
+            window.location.href = url; // URL 페이지로 이동
+        });
+
+        // 취소 버튼 클릭 시 모달 닫기
+        cancelBtn.addEventListener("click", function() {
+            modal.style.display = "none";
+        });
+
         var video = document.createElement("video");
         var canvasElement = document.getElementById("canvas");
         var canvas = canvasElement.getContext("2d");
@@ -122,23 +171,6 @@
                 });
                 // QR코드 인식에 성공한 경우
                 if (code) {
-                    // code.data가 URL 형식인지 확인
-                    // URL 형식이면 confirm을 통해 이동 여부 확인
-                    if (isValidURL(code.data)) {
-                        // 인식한 QR코드의 영역을 감싸는 사용자에게 보여지는 테두리 생성
-                        drawLine(code.location.topLeftCorner, code.location.topRightCorner, "#FF0000");
-                        drawLine(code.location.topRightCorner, code.location.bottomRightCorner, "#FF0000");
-                        drawLine(code.location.bottomRightCorner, code.location.bottomLeftCorner, "#FF0000");
-                        drawLine(code.location.bottomLeftCorner, code.location.topLeftCorner, "#FF0000");
-                        outputMessage.hidden = true;
-                        outputData.parentElement.hidden = false;
-                        // QR코드 메시지 출력
-                        outputData.innerHTML = code.data;
-                        var goToURL = confirm("해당 페이지로 이동하시겠습니까?");
-                        if (goToURL) {
-                            window.location.href = code.data; // URL 페이지로 이동
-                        }
-                    }
                     // 인식한 QR코드의 영역을 감싸는 사용자에게 보여지는 테두리 생성
                     drawLine(code.location.topLeftCorner, code.location.topRightCorner, "#FF0000");
                     drawLine(code.location.topRightCorner, code.location.bottomRightCorner, "#FF0000");
@@ -148,6 +180,11 @@
                     outputData.parentElement.hidden = false;
                     // QR코드 메시지 출력
                     outputData.innerHTML = code.data;
+                    // code.data가 URL 형식인지 확인
+                    // URL 형식이면 confirm을 통해 이동 여부 확인
+                    if (isValidURL(code.data)) {
+                        modal.style.display = "block";
+                    }
                     // return을 써서 함수를 빠져나가면 QR코드 프로그램이 종료된다.
                     // return;
                 }
