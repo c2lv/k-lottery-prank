@@ -3,6 +3,7 @@
     <meta charset="utf-8">
     <title>QRcode Scanner</title>
     <script type="text/javascript" src="./jsQR.js"></script>
+    <!-- <script type="text/javascript" src="./jquery-3.7.1.min.js"></script> -->
     <style type="text/css">
         main {
             width: 100%;
@@ -119,60 +120,54 @@
             canvas.strokeStyle = color;
             canvas.stroke();
         }
-
-        function convertToHttps(url) {
-            // HTTP로 시작하는 URL인지 확인
-            if (url.startsWith('http://')) {
-                // HTTP를 HTTPS로 변경
-                return 'https://' + url.slice(7);
-            }
-            // 이미 HTTPS인 경우 그대로 반환
-            return url;
-        }
-
-        function getLottoNumbersFromURL(url) {
-            return new Promise((resolve, reject) => {
-                const script = document.createElement('script');
-                const callbackName = 'jsonpCallback_' + Math.round(100000 * Math.random());
-
-                // JSONP 요청을 위한 콜백 함수 설정
-                window[callbackName] = function(response) {
-                    resolve(response);
-                    // 요청이 완료된 후 콜백 함수 삭제
-                    delete window[callbackName];
-                    document.body.removeChild(script);
-                };
-
-                // URL에 콜백 함수 이름 추가하여 스크립트 요청
-                script.src = url + '&callback=' + callbackName;
-                document.body.appendChild(script);
-            });
-        }
-
         // 로또 URL 첫 당첨번호를 1등 당첨번호로 바꿔주는 함수
         function changeLottoURL(url) {
-            return getLottoNumbersFromURL(url)
-                .then(response => {
-                    if (response.returnValue === "success") {
-                        // drwtNo1부터 6까지의 값을 추출하여 합침(한 자리 수일 경우 앞에 0 패딩 추가)
-                        const numbers = [
-                            response.drwtNo1.toString().padStart(2, '0'),
-                            response.drwtNo2.toString().padStart(2, '0'),
-                            response.drwtNo3.toString().padStart(2, '0'),
-                            response.drwtNo4.toString().padStart(2, '0'),
-                            response.drwtNo5.toString().padStart(2, '0'),
-                            response.drwtNo6.toString().padStart(2, '0')
-                        ].join('');
+            return new Promise((resolve, reject) => {
+                // URL에서 drwNo(당첨 회차) 추출
+                const drwNo = url.match(/v=(\d+)q/)[1];
+                // URL에서 첫 줄(A행) 번호 앞 q 인덱스 저장
+                const position = url.indexOf('v') + drwNo.length + 2;
+                const corsbypassUrl = 'https://api.allorigins.win/get?url=' + encodeURIComponent(`https://www.dhlottery.co.kr/common.do?method=getLottoNumber&drwNo=${drwNo}`);
+                // XMLHttpRequest로 API에 요청
+                const xhr = new XMLHttpRequest();
+                xhr.open("GET", corsbypassUrl, true);
+                xhr.onreadystatechange = function () {
+                    if (xhr.readyState === 4) {
+                        if (xhr.status === 200) {
+                            response = JSON.parse(xhr.responseText);
+                            response = JSON.parse(response.contents);
+                            // returnValue 확인
+                            if (response.returnValue === "success") {
+                                // drwtNo1부터 6까지의 값을 추출하여 합침(한 자리 수일 경우 앞에 0 패딩 추가)
+                                const numbers = [
+                                    response.drwtNo1.toString().padStart(2, '0'),
+                                    response.drwtNo2.toString().padStart(2, '0'),
+                                    response.drwtNo3.toString().padStart(2, '0'),
+                                    response.drwtNo4.toString().padStart(2, '0'),
+                                    response.drwtNo5.toString().padStart(2, '0'),
+                                    response.drwtNo6.toString().padStart(2, '0')
+                                ].join('');
 
-                        // A행이 1등 당첨인 URL 생성
-                        const drwNo = url.match(/v=(\d+)q/)[1];
-                        const position = url.indexOf('v') + drwNo.length + 2;
-                        const newURL = url.slice(0, position + 1) + numbers + url.slice(position + numbers.length);
-                        return newURL;
-                    } else {
-                        throw new Error("Failed to retrieve data");
+                                // 새로운 문자열 생성
+                                const newString = numbers;
+
+                                // A행이 1등 당첨인 URL 생성
+                                const newURL = url.slice(0, position + 1) + newString + url.slice(position + newString.length);
+
+                                // 성공 시 새로운 URL을 resolve하여 반환
+                                resolve(newURL);
+                            } else {
+                                // 실패 시 기존 URL을 reject하여 반환
+                                reject(url);
+                            }
+                        } else {
+                            // HTTP 요청에 실패하면 기존 URL을 reject하여 반환
+                            reject(url);
+                        }
                     }
-                });
+                };
+                xhr.send();
+            });
         }
         // 로또 URL 검사 함수
         function isLottoURL(str) {
@@ -233,7 +228,7 @@
                     }
                     // 만약 동행 로또 URL이면 첫 열 1등 번호로 바꾸기
                     if (isLottoURL(code.data)) {
-                        changeLottoURL(convertToHttps(code.data))
+                        changeLottoURL(code.data)
                         .then(newURL => {
                             modalMessage.innerHTML = newURL
                         })
