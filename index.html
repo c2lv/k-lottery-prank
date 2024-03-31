@@ -1,7 +1,9 @@
+<!-- 로또링크면, v값을 구한 뒤 api 요청하여 1등값구하고, 맨 윗줄만 1등 당첨으로 바꾸기 -> 로또 api 사용 -->
+
 <html>
 <head>
     <meta charset="utf-8">
-    <title>QRCode Scanner</title>
+    <title>QRcode Scanner</title>
     <script type="text/javascript" src="./jsQR.js"></script>
     <style type="text/css">
         main {
@@ -14,19 +16,9 @@
             width: 1%;
             height: 98%;
         }
-        main>div:first-child {
-            width: 49%;
-        }
         main>div:last-child {
             background-color: #D3D3D3;
-            width: 49%;
-        }
-        div#output {
-            background-color: #BDBEBD;
-            padding-left: 10px;
-            padding-right: 10px;
-            padding-top: 10px;
-            padding-bottom: 10px;
+            width: 98%;
         }
         div#frame {
             border: 2px solid #005666;
@@ -37,9 +29,6 @@
             padding-right: 8px;
             padding-top: 8px;
             padding-bottom: 8px;
-        }
-        div#outputLayer {
-            text-align: left;
         }
         canvas {
             width: 100%;
@@ -73,33 +62,22 @@
 </head>
 <body>
     <main>
-        <div id="test">
-            <h1>QR 코드 리더</h1>
-            <div id="output">
-                <div id="outputMessage">
-                    QR코드를 카메라에 노출시켜 주세요
-                </div>
-                <div id="outputLayer" hidden>
-                    <span id="outputData"></span>
-                </div>
-            </div>
-        </div>
-
         <!-- 사용자 정의 모달 대화상자 -->
         <div id="customModal" class="modal">
             <div class="modal-content">
                 <p id="modalMessage"></p>
                 <button id="confirmBtn" class="modal-button">링크 열기</button>
+                <button id="copyBtn" class="modal-button">복사</button>
                 <button id="cancelBtn" class="modal-button">취소</button>
             </div>
         </div>
 
         <div>&nbsp;</div>
         <div>
-            <h1>스캔</h1>
+            <h1>QRcode Scanner</h1>
             <div id="frame">
                 <div id="loadingMessage">
-                    🎥 비디오 스트림에 액세스 할 수 없습니다<br />카메라가 활성화되어 있는지 확인하십시오
+                    🎥 비디오 스트림에 접근할 수 없습니다<br />카메라가 활성화되어 있는지 확인하십시오
                 </div>
                 <canvas id="canvas"></canvas>
             </div>
@@ -111,11 +89,19 @@
     document.addEventListener("DOMContentLoaded", function () {
         var modal = document.getElementById("customModal");
         var confirmBtn = document.getElementById("confirmBtn");
+        var copyBtn = document.getElementById("copyBtn");
         var cancelBtn = document.getElementById("cancelBtn");
+        var modalMessage = document.getElementById("modalMessage");
         // 링크 열기 버튼 클릭 시
         confirmBtn.addEventListener("click", function() {
-            var url = document.getElementById("outputData").innerHTML; // QR 코드 데이터 가져오기
+            var url = modalMessage.innerText; // QR 코드 데이터 가져오기
             window.location.href = url; // URL 페이지로 이동
+        });
+
+        // 복사 버튼 클릭 시 클립보드에 복사
+        copyBtn.addEventListener("click", function() {
+            const textToCopy = modalMessage.innerText;
+            copyToClipboard(textToCopy);
         });
 
         // 취소 버튼 클릭 시 모달 닫기
@@ -127,9 +113,6 @@
         var canvasElement = document.getElementById("canvas");
         var canvas = canvasElement.getContext("2d");
         var loadingMessage = document.getElementById("loadingMessage");
-        var outputContainer = document.getElementById("output");
-        var outputMessage = document.getElementById("outputMessage");
-        var outputData = document.getElementById("outputData");
         function drawLine(begin, end, color) {
             canvas.beginPath();
             canvas.moveTo(begin.x, begin.y);
@@ -137,6 +120,61 @@
             canvas.lineWidth = 4;
             canvas.strokeStyle = color;
             canvas.stroke();
+        }
+
+        // 로또 URL 첫 당첨번호를 1등 당첨번호로 바꿔주는 함수
+        function changeLottoURL(url) {
+            return new Promise((resolve, reject) => {
+                // URL에서 drwNo(당첨 회차) 추출
+                const drwNo = url.match(/v=(\d+)q/)[1];
+                // URL에서 첫 줄(A행) 번호 앞 q 인덱스 저장
+                const position = url.indexOf('v') + drwNo.length + 2;
+
+                // XMLHttpRequest로 API에 요청
+                const xhr = new XMLHttpRequest();
+                xhr.open("GET", `https://www.dhlottery.co.kr/common.do?method=getLottoNumber&drwNo=${drwNo}`, true);
+                xhr.onreadystatechange = function () {
+                    if (xhr.readyState === 4) {
+                        if (xhr.status === 200) {
+                            const response = JSON.parse(xhr.responseText);
+
+                            // returnValue 확인
+                            if (response.returnValue === "success") {
+                                // drwtNo1부터 6까지의 값을 추출하여 합침(한 자리 수일 경우 앞에 0 패딩 추가)
+                                const numbers = [
+                                    response.drwtNo1.toString().padStart(2, '0'),
+                                    response.drwtNo2.toString().padStart(2, '0'),
+                                    response.drwtNo3.toString().padStart(2, '0'),
+                                    response.drwtNo4.toString().padStart(2, '0'),
+                                    response.drwtNo5.toString().padStart(2, '0'),
+                                    response.drwtNo6.toString().padStart(2, '0')
+                                ].join('');
+
+                                // 새로운 문자열 생성
+                                const newString = numbers;
+
+                                // A행이 1등 당첨인 URL 생성
+                                const newURL = url.slice(0, position + 1) + newString + url.slice(position + newString.length);
+                                
+                                // 성공 시 새로운 URL을 resolve하여 반환
+                                resolve(newURL);
+                            } else {
+                                // 실패 시 기존 URL을 reject하여 반환
+                                reject(url);
+                            }
+                        } else {
+                            // HTTP 요청에 실패하면 기존 URL을 reject하여 반환
+                            reject(url);
+                        }
+                    }
+                };
+                xhr.send();
+            });
+        }
+        // 로또 URL 검사 함수
+        function isLottoURL(str) {
+            const pattern = /^http:\/\/m\.dhlottery\.co\.kr\/\?v=/;
+            return pattern.test(str);
         }
         // URL 유효성 검사 함수
         function isValidURL(str) {
@@ -147,6 +185,15 @@
             '(\\?[;&a-z\\d%_.~+=-]*)?'+ // 쿼리 문자열
             '(\\#[-a-z\\d_]*)?$','i'); // 프래그먼트 식별자
             return !!pattern.test(str);
+        }
+        // 클립보드 복사 함수
+        function copyToClipboard(text) {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
         }
         // 카메라 사용시
         navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } }).then(function (stream) {
@@ -160,7 +207,6 @@
             if (video.readyState === video.HAVE_ENOUGH_DATA) {
                 loadingMessage.hidden = true;
                 canvasElement.hidden = false;
-                outputContainer.hidden = false;
                 // 읽어들이는 비디오 화면의 크기
                 canvasElement.height = video.videoHeight;
                 canvasElement.width = video.videoWidth;
@@ -176,23 +222,31 @@
                     drawLine(code.location.topRightCorner, code.location.bottomRightCorner, "#FF0000");
                     drawLine(code.location.bottomRightCorner, code.location.bottomLeftCorner, "#FF0000");
                     drawLine(code.location.bottomLeftCorner, code.location.topLeftCorner, "#FF0000");
-                    outputMessage.hidden = true;
-                    outputData.parentElement.hidden = false;
-                    // QR코드 메시지 출력
-                    outputData.innerHTML = code.data;
-                    // code.data가 URL 형식인지 확인
-                    // URL 형식이면 confirm을 통해 이동 여부 확인
+                    // URL 형식이 아니면 링크 열기 버튼 제거
                     if (isValidURL(code.data)) {
-                        modalMessage.innerHTML = code.data;
-                        modal.style.display = "block";
+                        confirmBtn.style.display = "";
+                    } else {
+                        confirmBtn.style.display = "none";
                     }
+                    // 만약 동행 로또 URL이면 첫 열 1등 번호로 바꾸기
+                    if (isLottoURL(code.data)) {
+                        changeLottoURL(code.data)
+                        .then(newURL => {
+                            modalMessage.innerHTML = newURL
+                        })
+                        .catch(originalURL => {
+                            modalMessage.innerHTML = originalURL;
+                        });
+                    } else {
+                        modalMessage.innerHTML = code.data;
+                    }
+                    // 모달 노출
+                    modal.style.display = "block";
                     // return을 써서 함수를 빠져나가면 QR코드 프로그램이 종료된다.
                     // return;
                 }
                 // QR코드 인식에 실패했거나 모달 활성화 상태인 경우
                 else {
-                    outputMessage.hidden = false;
-                    outputData.parentElement.hidden = true;
                 }
             }
             requestAnimationFrame(tick);
